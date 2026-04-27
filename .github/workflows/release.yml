@@ -1,21 +1,20 @@
-Name: Create New Release
+name: Create New Release
 
 on:
   workflow_dispatch:
 
-# ١. زیادکردنی مۆڵەتەکان لێرە زۆر گرنگە بۆ ئەوەی ڕێگەت پێ بدات ریلیز دروست بکەیت
 permissions:
   contents: write
 
 jobs:
   build:
-    runs-on: macos-26 # دڵنیابە ئەم ڤێرژنەی ماک لای گیتھەب بەردەستە (بەزۆری macos-14 یان macos-latest بەکاردێت)
+    runs-on: macos-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v3
         with:
           submodules: 'true'
-          fetch-depth: 0 # بۆ ئەوەی agvtool کێشەی نەبێت لەگەڵ گیت
+          fetch-depth: 0
       
       - name: Use Xcode 26.2
         run: |
@@ -31,7 +30,6 @@ jobs:
       - name: Get Version
         id: get_version
         run: |
-          # دڵنیابە ناونیشانی Payload دروستە، ئەگەر لە ناو فۆڵدەرێکی تر بوو بیگۆڕە
           VERSION=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" Payload/*.app/Info.plist)
           echo "VERSION=${VERSION}" >> $GITHUB_ENV
 
@@ -46,5 +44,4 @@ jobs:
           fail_on_unmatched_files: true
           draft: true
         env:
-          # ٢. لێرەدا دەبێت secrets.GITHUB_TOKEN بەکاربێنیت نەک env.GITHUB_TOKEN
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
