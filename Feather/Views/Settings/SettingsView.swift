@@ -144,7 +144,7 @@ extension SettingsView {
 			
 			// دوگمەی ئینستاگرام
 			Button(action: {
-				if let url = URL(string: "https://www.instagram.com/ashte.mobile?igsh=c3lqdHNsenozMmp2") {
+				if let url = URL(string: "https://www.instagram.com/ashtemobile") {
 					UIApplication.shared.open(url)
 				}
 			}) {
