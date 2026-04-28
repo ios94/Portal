@@ -105,7 +105,7 @@ struct SourcesAddView: View {
 							}
 						}
 					} footer: {
-						Text(.localized("Open an [issue](https://github.com/khcrysalis/Feather/issues) on GitHub if you want your source to be featured."))
+						Text(.localized("Open an [Telegram](https://t.me/ashtemobile) on Telegram if you want your source to be featured."))
 					}
 				}
 			}
