@@ -7,6 +7,7 @@ import SwiftUI
 import NimbleViews
 import Foundation
 import UIKit
+import WebKit // 👈 ئەمەم زیاد کردووە بۆ خوێندنەوەی ڕیکلامەکە
 
 struct HomeApp: Codable, Identifiable {
     var id: String { url }
@@ -52,74 +53,82 @@ struct HomeView: View {
     }
     
     var body: some View {
-        ZStack(alignment: .top) {
-            NBNavigationView("Home") {
-                ScrollView {
-                    VStack(spacing: 30) {
-                        
-                        if !featuredApps.isEmpty {
-                            TabView {
-                                ForEach(featuredApps) { app in
-                                    NavigationLink(destination: HomeAppDetailView(app: app, downloadManager: downloadManager) {
-                                        showDownloadNotification(for: app)
-                                    }) {
-                                        FeaturedAppView(app: app, downloadManager: downloadManager) {
+        // 👈 لێرەدا VStackم داناوە بۆ ئەوەی ڕیکلامەکە بچێتە خوارەوە
+        VStack(spacing: 0) {
+            ZStack(alignment: .top) {
+                NBNavigationView("Home") {
+                    ScrollView {
+                        VStack(spacing: 30) {
+                            
+                            if !featuredApps.isEmpty {
+                                TabView {
+                                    ForEach(featuredApps) { app in
+                                        NavigationLink(destination: HomeAppDetailView(app: app, downloadManager: downloadManager) {
                                             showDownloadNotification(for: app)
-                                        }
-                                    }
-                                    .buttonStyle(.plain)
-                                }
-                            }
-                            .frame(height: 240)
-                            .tabViewStyle(PageTabViewStyle(indexDisplayMode: .always))
-                        }
-                        
-                        VStack(alignment: .leading, spacing: 30) {
-                            ForEach(groupedApps, id: \.0) { category, categoryApps in
-                                VStack(alignment: .leading, spacing: 15) {
-                                    Text(category)
-                                        .font(.title3.bold())
-                                        .padding(.horizontal, 20)
-                                    
-                                    ScrollView(.horizontal, showsIndicators: false) {
-                                        LazyHStack(spacing: 16) {
-                                            ForEach(categoryApps) { app in
-                                                NavigationLink(destination: HomeAppDetailView(app: app, downloadManager: downloadManager) {
-                                                    showDownloadNotification(for: app)
-                                                }) {
-                                                    HomeAppCardView(app: app, downloadManager: downloadManager) {
-                                                        showDownloadNotification(for: app)
-                                                    }
-                                                }
-                                                .buttonStyle(.plain)
+                                        }) {
+                                            FeaturedAppView(app: app, downloadManager: downloadManager) {
+                                                showDownloadNotification(for: app)
                                             }
                                         }
-                                        .padding(.horizontal, 20)
-                                        .padding(.vertical, 8)
+                                        .buttonStyle(.plain)
+                                    }
+                                }
+                                .frame(height: 240)
+                                .tabViewStyle(PageTabViewStyle(indexDisplayMode: .always))
+                            }
+                            
+                            VStack(alignment: .leading, spacing: 30) {
+                                ForEach(groupedApps, id: \.0) { category, categoryApps in
+                                    VStack(alignment: .leading, spacing: 15) {
+                                        Text(category)
+                                            .font(.title3.bold())
+                                            .padding(.horizontal, 20)
+                                        
+                                        ScrollView(.horizontal, showsIndicators: false) {
+                                            LazyHStack(spacing: 16) {
+                                                ForEach(categoryApps) { app in
+                                                    NavigationLink(destination: HomeAppDetailView(app: app, downloadManager: downloadManager) {
+                                                        showDownloadNotification(for: app)
+                                                    }) {
+                                                        HomeAppCardView(app: app, downloadManager: downloadManager) {
+                                                            showDownloadNotification(for: app)
+                                                        }
+                                                    }
+                                                    .buttonStyle(.plain)
+                                                }
+                                            }
+                                            .padding(.horizontal, 20)
+                                            .padding(.vertical, 8)
+                                        }
                                     }
                                 }
                             }
+                            
+                            SocialMediaFooter()
+                                .padding(.top, 10)
+                                .padding(.bottom, 30)
                         }
-                        
-                        SocialMediaFooter()
-                            .padding(.top, 10)
-                            .padding(.bottom, 30)
+                        .padding(.top, 10)
                     }
-                    .padding(.top, 10)
+                    .refreshable {
+                        await loadApps()
+                    }
                 }
-                .refreshable {
-                    await loadApps()
+                .onAppear {
+                    Task { await loadApps() }
                 }
-            }
-            .onAppear {
-                Task { await loadApps() }
+                
+                if showNotification, let app = downloadedApp {
+                    notificationBanner(for: app)
+                        .padding(.top, 8)
+                        .zIndex(100)
+                }
             }
             
-            if showNotification, let app = downloadedApp {
-                notificationBanner(for: app)
-                    .padding(.top, 8)
-                    .zIndex(100)
-            }
+            // 👈 ئەمە ڕیکلامەکەی خۆتە کە هەمیشە لە خوارەوەی شاشەکە دەردەکەوێت
+            AdWebView()
+                .frame(height: 60)
+                .background(Color(UIColor.systemBackground))
         }
     }
     
@@ -233,7 +242,6 @@ struct HomeAppDetailView: View {
                             }
                             Spacer()
                             
-                            // 👈 لێرەدا شەیرکردنی ڕاستەوخۆی فایلەکەمان گۆڕی بۆ شەیرکردنی تێکست و لینکی کەنال
                             Button(action: {
                                 let shareText = "Download \(app.name) from AshteMobile Store!\nhttps://t.me/ashtemmobile"
                                 let av = UIActivityViewController(activityItems: [shareText], applicationActivities: nil)
@@ -670,5 +678,41 @@ struct HomeDownloadButtonView: View {
             }
         }
         .frame(height: 32)
+    }
+}
+
+// 👈 کۆدی ڕیکلامەکە لێرەدا زیاد کراوە
+struct AdWebView: UIViewRepresentable {
+    func makeUIView(context: Context) -> WKWebView {
+        let webView = WKWebView()
+        webView.isOpaque = false 
+        webView.scrollView.isScrollEnabled = false 
+        return webView
+    }
+
+    func updateUIView(_ uiView: WKWebView, context: Context) {
+        let htmlString = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+            <style>
+                body { 
+                    margin: 0; 
+                    padding: 0; 
+                    display: flex; 
+                    justify-content: center; 
+                    align-items: center; 
+                    height: 100vh; 
+                    background-color: transparent; 
+                }
+            </style>
+        </head>
+        <body>
+            <script src="https://pl28698373.profitablecpmratenetwork.com/d5/77/a5/d577a550908069c0ee7dce0a3adedeed.js"></script>
+        </body>
+        </html>
+        """
+        uiView.loadHTMLString(htmlString, baseURL: nil)
     }
 }
