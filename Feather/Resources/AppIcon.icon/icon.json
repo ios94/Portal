@@ -32,12 +32,12 @@
     {
       "layers" : [
         {
-          "image-name" : "feather.png",
+          "image-name" : "ashte.png",
           "name" : "feather"
         },
         {
           "glass" : false,
-          "image-name" : "feather 5.png",
+          "image-name" : "ashte.png",
           "name" : "feather 5",
           "opacity" : 0.14
         }
