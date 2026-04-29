@@ -121,6 +121,10 @@
 			</array>
 		</dict>
 	</array>
+	<key>CFBundleDisplayName</key>
+	<string>AshteMobile</string>
+	<key>CFBundleName</key>
+	<string>AshteMobile</string>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>localdevvpn</string>
