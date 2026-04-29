@@ -17,12 +17,7 @@ struct SettingsView: View {
     ) private var _certificates: FetchedResults<CertificatePair>
     
     private var selectedCertificate: CertificatePair? {
-        guard
-            _storedSelectedCert >= 0,
-            _storedSelectedCert < _certificates.count
-        else {
-            return nil
-        }
+        guard _storedSelectedCert >= 0, _storedSelectedCert < _certificates.count else { return nil }
         return _certificates[_storedSelectedCert]
     }
 
@@ -32,172 +27,179 @@ struct SettingsView: View {
             List {
                 // MARK: - Modern Profile Header
                 Section {
-                    VStack(spacing: 14) {
-                        // لۆگۆی ئەپەکە بە دیزاینی مۆدێرن
-                        AsyncImage(url: URL(string: "https://ashtemobile.tututweak.com/a.png")) { image in
-                            image.resizable()
-                                .scaledToFit()
-                                .frame(width: 85, height: 85)
-                                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                                .shadow(color: Color.black.opacity(0.15), radius: 8, x: 0, y: 4)
-                        } placeholder: {
-                            ProgressView()
-                                .frame(width: 85, height: 85)
-                                .background(Color.gray.opacity(0.1))
-                                .clipShape(RoundedRectangle(cornerRadius: 20))
-                        }
-                        
-                        VStack(spacing: 4) {
-                            Text("AshteMobile")
-                                .font(.system(size: 24, weight: .bold, design: .rounded))
-                                .foregroundColor(.primary)
-                            Text("Premium Signing Experience")
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                                .foregroundColor(.secondary)
-                        }
-                        
-                        // دوگمەی سۆشیاڵ میدیاکان بە شێوازی Capsule
-                        HStack(spacing: 12) {
-                            socialButton(icon: "paperplane.fill", text: "Telegram", color: Color.blue, url: "https://t.me/ashtemobile")
+                    VStack(spacing: 20) {
+                        // Profile Image with Animation
+                        ZStack {
+                            Circle()
+                                .fill(LinearGradient(colors: [.blue.opacity(0.2), .purple.opacity(0.2)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                                .frame(width: 110, height: 110)
                             
-                            socialButton(icon: "camera.fill", text: "Instagram", color: Color.pink, url: "https://www.instagram.com/ashtemobile")
+                            AsyncImage(url: URL(string: "https://ashtemobile.tututweak.com/a.png")) { image in
+                                image.resizable()
+                                    .scaledToFill()
+                                    .frame(width: 90, height: 90)
+                                    .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                                    .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 5)
+                            } placeholder: {
+                                ProgressView()
+                                    .frame(width: 90, height: 90)
+                                    .background(Color.gray.opacity(0.1))
+                                    .clipShape(RoundedRectangle(cornerRadius: 22))
+                            }
                         }
-                        .padding(.top, 5)
+                        .padding(.top, 10)
+                        
+                        VStack(spacing: 6) {
+                            Text("AshteMobile")
+                                .font(.system(size: 26, weight: .black, design: .rounded))
+                                .foregroundColor(.primary)
+                            
+                            Text("Version \(Bundle.main.version) (\(Bundle.main.build))")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundColor(.secondary)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 4)
+                                .background(Color.secondary.opacity(0.1))
+                                .clipShape(Capsule())
+                        }
+                        
+                        // Social Links Card
+                        HStack(spacing: 15) {
+                            _socialLink(icon: "paperplane.fill", title: "Telegram", color: .blue, url: "https://t.me/ashtemobile")
+                            _socialLink(icon: "camera.fill", title: "Instagram", color: .pink, url: "https://www.instagram.com/ashtemobile")
+                        }
+                        .padding(.horizontal)
+                        .padding(.bottom, 10)
                     }
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 15)
                 }
                 .listRowBackground(Color.clear)
                 .listRowInsets(EdgeInsets())
 
-                // MARK: - General Section
+                // MARK: - App Preferences
                 Section {
-                    NavigationLink(destination: AboutView()) {
-                        HStack(spacing: 14) {
-                            FRAppIconView(size: 28)
-                                .clipShape(RoundedRectangle(cornerRadius: 7))
-                            Text(verbatim: .localized("About %@", arguments: Bundle.main.name))
-                                .font(.system(size: 16))
-                        }
-                    }
                     NavigationLink(destination: AppearanceView()) {
-                        modernLabel(.localized("Appearance"), systemImage: "paintbrush.fill", color: .purple)
+                        _modernLabel("Appearance", icon: "paintbrush.fill", color: .purple)
                     }
                     NavigationLink(destination: AppIconView(currentIcon: $_currentIcon)) {
-                        modernLabel(.localized("App Icon"), systemImage: "app.badge.fill", color: .indigo)
+                        _modernLabel("App Icon", icon: "app.badge.fill", color: .indigo)
                     }
-                }
+                    NavigationLink(destination: AboutView()) {
+                        _modernLabel("About Feather", icon: "info.circle.fill", color: .blue)
+                    }
+                } header: { Text("Preferences") }
                 
-                // MARK: - Certificates Section
-                NBSection(.localized("Certificates")) {
+                // MARK: - Certificate Management
+                Section {
                     if let cert = selectedCertificate {
-                        CertificatesCellView(cert: cert)
+                        NavigationLink(destination: CertificatesView()) {
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack {
+                                    _modernLabel("Active Certificate", icon: "checkmark.seal.fill", color: .green)
+                                    Spacer()
+                                    Text("Active").font(.caption2).bold().padding(4).background(Color.green.opacity(0.2)).foregroundColor(.green).cornerRadius(5)
+                                }
+                                CertificatesCellView(cert: cert)
+                                    .scaleEffect(0.9)
+                                    .padding(.leading, -15)
+                            }
+                        }
                     } else {
-                        HStack {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundColor(.orange)
-                            Text(.localized("No Certificate"))
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
+                        NavigationLink(destination: CertificatesView()) {
+                            _modernLabel("Manage Certificates", icon: "shield.slash.fill", color: .orange)
                         }
                     }
-                    NavigationLink(destination: CertificatesView()) {
-                        modernLabel(.localized("Manage Certificates"), systemImage: "checkmark.seal.fill", color: .green)
-                    }
-                } footer: {
-                    Text(.localized("Add and manage certificates used for signing applications."))
-                }
+                } header: { Text("Security") }
                 
-                // MARK: - Features Section
-                NBSection(.localized("Features")) {
+                // MARK: - Advanced Features
+                Section {
                     NavigationLink(destination: ConfigurationView()) {
-                        modernLabel(.localized("Signing Options"), systemImage: "signature", color: .orange)
+                        _modernLabel("Signing Options", icon: "signature", color: .orange)
                     }
                     NavigationLink(destination: ArchiveView()) {
-                        modernLabel(.localized("Archive & Compression"), systemImage: "archivebox.fill", color: .brown)
+                        _modernLabel("Archive & Compression", icon: "archivebox.fill", color: .brown)
                     }
                     NavigationLink(destination: InstallationView()) {
-                        modernLabel(.localized("Installation"), systemImage: "arrow.down.circle.fill", color: .blue)
+                        _modernLabel("Installation", icon: "arrow.down.circle.fill", color: .blue)
                     }
-                } footer: {
-                    Text(.localized("Configure the apps way of installing, its zip compression levels, and custom modifications to apps."))
-                }
+                } header: { Text("Tools") }
                 
-                // MARK: - Directories Section
-                NBSection(.localized("Misc")) {
-                    Button(action: { UIApplication.open(URL.documentsDirectory.toSharedDocumentsURL()!) }) {
-                        modernLabel(.localized("Open Documents"), systemImage: "folder.fill", color: .gray)
-                    }
-                    Button(action: { UIApplication.open(FileManager.default.archives.toSharedDocumentsURL()!) }) {
-                        modernLabel(.localized("Open Archives"), systemImage: "shippingbox.fill", color: .gray)
-                    }
-                    Button(action: { UIApplication.open(FileManager.default.certificates.toSharedDocumentsURL()!) }) {
-                        modernLabel(.localized("Open Certificates"), systemImage: "lock.rectangle.fill", color: .gray)
-                    }
-                }
+                // MARK: - File Manager
+                Section {
+                    _fileRow(title: "Open Documents", icon: "folder.fill", color: .gray, path: URL.documentsDirectory)
+                    _fileRow(title: "Open Archives", icon: "shippingbox.fill", color: .gray, path: FileManager.default.archives)
+                    _fileRow(title: "Open Certificates", icon: "lock.rectangle.fill", color: .gray, path: FileManager.default.certificates)
+                } header: { Text("Storage") }
                 
-                // MARK: - Danger Zone Section
+                // MARK: - System
                 Section {
                     NavigationLink(destination: ResetView()) {
-                        HStack(spacing: 14) {
-                            Image(systemName: "trash.fill")
-                                .font(.system(size: 15, weight: .semibold))
-                                .foregroundColor(.white)
-                                .frame(width: 28, height: 28)
-                                .background(Color.red)
-                                .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
-                            
-                            Text(.localized("Reset All Data"))
-                                .font(.system(size: 16))
-                                .foregroundColor(.red)
+                        HStack {
+                            _modernLabel("Reset All Data", icon: "trash.fill", color: .red)
+                            Spacer()
                         }
                     }
+                } header: { Text("System") }
+                
+                // Footer
+                Section {
+                    VStack(alignment: .center, spacing: 8) {
+                        Text("Made with ❤️ by AshteMobile Team")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity)
                 }
+                .listRowBackground(Color.clear)
             }
-            .listStyle(.insetGrouped) // ستایلی مۆدێرنی ئەپڵ
+            .listStyle(.insetGrouped)
         }
     }
 }
 
-// MARK: - Modern UI Helpers (سەد لە سەد کاردەکات بەبێ کێشە)
+// MARK: - UI Components
 extension SettingsView {
     
     @ViewBuilder
-    private func modernLabel(_ text: String, systemImage: String, color: Color) -> some View {
-        HStack(spacing: 14) {
-            Image(systemName: systemImage)
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundColor(.white)
-                .frame(width: 28, height: 28)
-                .background(color)
-                .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+    private func _modernLabel(_ title: String, icon: String, color: Color) -> some View {
+        HStack(spacing: 12) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(color.gradient)
+                    .frame(width: 32, height: 32)
+                
+                Image(systemName: icon)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.white)
+            }
             
-            Text(text)
-                .font(.system(size: 16))
-                .foregroundColor(.primary)
+            Text(.localized(title))
+                .font(.system(size: 16, weight: .medium))
         }
     }
     
     @ViewBuilder
-    private func socialButton(icon: String, text: String, color: Color, url: String) -> some View {
-        Button(action: {
-            if let targetURL = URL(string: url) {
-                UIApplication.shared.open(targetURL)
-            }
-        }) {
+    private func _socialLink(icon: String, title: String, color: Color, url: String) -> some View {
+        Button(action: { UIApplication.shared.open(URL(string: url)!) }) {
             HStack {
                 Image(systemName: icon)
-                Text(text)
-                    .fontWeight(.bold)
+                Text(title)
             }
-            .font(.subheadline)
+            .font(.system(size: 14, weight: .bold))
             .foregroundColor(.white)
-            .padding(.vertical, 10)
-            .padding(.horizontal, 16)
-            .background(color)
-            .clipShape(Capsule())
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .background(color.gradient)
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             .shadow(color: color.opacity(0.3), radius: 5, x: 0, y: 3)
+        }
+        .buttonStyle(.plain)
+    }
+    
+    @ViewBuilder
+    private func _fileRow(title: String, icon: String, color: Color, path: URL) -> some View {
+        Button(action: { UIApplication.open(path.toSharedDocumentsURL()!) }) {
+            _modernLabel(title, icon: icon, color: color)
         }
         .buttonStyle(.plain)
     }
