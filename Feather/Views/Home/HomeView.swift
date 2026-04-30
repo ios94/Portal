@@ -44,18 +44,22 @@ struct HomeView: View {
     @State private var showNotification = false
     @State private var downloadedApp: HomeApp? = nil
     
+    // --- بەشی وێنە لاکێشەییەکان (دەتوانیت لێرە بیانگۆڕیت) ---
     @State private var currentBanner = 0
     let myCustomBanners = [
-        "https://raw.githubusercontent.com/mzerem18-cpu/Portal/refs/heads/main/Images/aste.png",
-        "https://raw.githubusercontent.com/mzerem18-cpu/Portal/refs/heads/main/Images/app.png"
+        "https://raw.githubusercontent.com/mzerem18-cpu/Portal/refs/heads/main/Images/aste.png", // لینکی وێنەی یەکەم لێرە دابنێ
+        "https://raw.githubusercontent.com/mzerem18-cpu/Portal/refs/heads/main/Images/app.png"  // لینکی وێنەی دووەم لێرە دابنێ
     ]
     
+    // --- لینکەکان تەنها لێرە دادەنێین بێ ئەوەی مۆدێل دروست بکەین ---
     let myCustomLinks = [
-        "https://t.me/ashtemobile",
-        "https://www.instagram.com/ashtemobile"
+        "https://t.me/ashtemobile",             // بۆ وێنەی یەکەم دەچێتە تێلیگرام
+        "https://www.instagram.com/ashtemobile"  // بۆ وێنەی دووەم دەچێتە ئینستاگرام
     ]
     
+    // کاتی ئۆتۆماتیکی گۆڕینی وێنەکان (هەر 4 چرکە جارێک)
     let timer = Timer.publish(every: 4, on: .main, in: .common).autoconnect()
+    // -------------------------------------------------------
     
     var groupedApps: [(String, [HomeApp])] {
         let dict = Dictionary(grouping: apps, by: { $0.category ?? "Apps" })
@@ -70,10 +74,11 @@ struct HomeView: View {
                 ScrollView {
                     VStack(spacing: 35) {
                         
-                        // Banners
+                        // 1. بەشی وێنە لاکێشەییەکان (Custom Banners)
                         if !myCustomBanners.isEmpty {
                             TabView(selection: $currentBanner) {
                                 ForEach(0..<myCustomBanners.count, id: \.self) { index in
+                                    // دانانی دوگمەکە بۆ کردنەوەی لینکەکان
                                     Button(action: {
                                         if index < myCustomLinks.count, let url = URL(string: myCustomLinks[index]) {
                                             UIApplication.shared.open(url)
@@ -91,11 +96,13 @@ struct HomeView: View {
                                     .tag(index)
                                 }
                             }
+                            // دانانی قەبارەی وێنەکان ڕێک بۆ (3464x1948)
                             .frame(height: (UIScreen.main.bounds.width - 40) * (1948.0 / 3464.0))
                             .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
                             .padding(.horizontal, 20)
                             .shadow(color: Color.black.opacity(0.12), radius: 10, x: 0, y: 5)
                             .tabViewStyle(PageTabViewStyle(indexDisplayMode: .always))
+                            // جوڵاندنی ئۆتۆماتیکی
                             .onReceive(timer) { _ in
                                 guard !myCustomBanners.isEmpty else { return }
                                 withAnimation(.easeInOut(duration: 0.5)) {
@@ -104,7 +111,7 @@ struct HomeView: View {
                             }
                         }
                         
-                        // Categories
+                        // 2. بەشی یاری و بەرنامەکان (Categories Section)
                         VStack(alignment: .leading, spacing: 30) {
                             ForEach(groupedApps, id: \.0) { category, categoryApps in
                                 VStack(alignment: .leading, spacing: 16) {
@@ -140,6 +147,7 @@ struct HomeView: View {
                             }
                         }
                         
+                        // 3. بەشی سۆشیاڵ میدیاکانت (Social Media Footer)
                         SocialMediaFooter()
                             .padding(.top, 10)
                             .padding(.bottom, 40)
@@ -154,6 +162,7 @@ struct HomeView: View {
                 Task { await loadApps() }
             }
             
+            // Notification Banner
             if showNotification, let app = downloadedApp {
                 notificationBanner(for: app)
                     .padding(.top, safeAreaTop() + 10)
@@ -186,10 +195,10 @@ struct HomeView: View {
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             
             VStack(alignment: .leading, spacing: 3) {
-                Text("App Processed")
+                Text("App Downloaded")
                     .font(.system(size: 15, weight: .bold, design: .rounded))
                     .foregroundColor(.primary)
-                Text("\(app.name) is ready.")
+                Text("\(app.name) is ready in library.")
                     .font(.system(size: 13, weight: .regular, design: .rounded))
                     .foregroundColor(.secondary)
             }
@@ -248,6 +257,7 @@ struct HomeAppDetailView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     
+                    // Header Image
                     GeometryReader { proxy in
                         let minY = proxy.frame(in: .global).minY
                         let isScrolledDown = minY > 0
@@ -267,6 +277,7 @@ struct HomeAppDetailView: View {
                             )
                             .offset(y: offset)
                             
+                            // Navigation Buttons
                             HStack {
                                 Button(action: { presentationMode.wrappedValue.dismiss() }) {
                                     Image(systemName: "chevron.left")
@@ -297,6 +308,7 @@ struct HomeAppDetailView: View {
                     }
                     .frame(height: 280)
                     
+                    // App Info
                     HStack(alignment: .center, spacing: 16) {
                         AsyncImage(url: app.fullImageURL) { image in
                             image.resizable().aspectRatio(contentMode: .fill)
@@ -325,6 +337,7 @@ struct HomeAppDetailView: View {
                     .offset(y: -40)
                     .padding(.bottom, -20)
                     
+                    // Stats
                     HStack(spacing: 12) {
                         StatCard(icon: "tag.fill", title: "Version", value: app.version ?? "1.0", color: .blue)
                         StatCard(icon: "shippingbox.fill", title: "Size", value: app.size ?? "Unknown", color: .purple)
@@ -333,6 +346,7 @@ struct HomeAppDetailView: View {
                     .padding(.horizontal, 20)
                     .padding(.bottom, 30)
                     
+                    // Description
                     VStack(alignment: .leading, spacing: 14) {
                         Text("Description")
                             .font(.system(size: 20, weight: .bold, design: .rounded))
@@ -367,6 +381,7 @@ struct HomeAppDetailView: View {
                     .padding(.horizontal, 20)
                     .padding(.bottom, 30)
                     
+                    // Information List
                     VStack(alignment: .leading, spacing: 14) {
                         Text("Information")
                             .font(.system(size: 20, weight: .bold, design: .rounded))
@@ -497,6 +512,7 @@ struct HomeAppCardView: View {
     }
 }
 
+// MARK: - Social Media Footer
 struct SocialMediaFooter: View {
     var body: some View {
         VStack(spacing: 20) {
@@ -548,7 +564,7 @@ struct ScaleButtonStyle: ButtonStyle {
     }
 }
 
-// MARK: - Downloader
+// MARK: - Downloader & Button
 class HomeAppDownloader: NSObject, ObservableObject, URLSessionDownloadDelegate {
     @Published var progress: CGFloat = 0
     @Published var isDownloading = false
@@ -619,16 +635,12 @@ class HomeAppDownloader: NSObject, ObservableObject, URLSessionDownloadDelegate 
     }
 }
 
-// MARK: - THE BUTTON LOGIC
 struct HomeDownloadButtonView: View {
     let app: HomeApp
     @ObservedObject var downloadManager: DownloadManager
     var onDownloadComplete: () -> Void 
     
     @StateObject private var downloader = HomeAppDownloader()
-    
-    // ئەمە ئەوەیە کە دەزانێت تۆ کامیانت هەڵبژاردووە لە ڕێکخستنەکان
-    @AppStorage("Feather.installationMethod") private var installationMethod: Int = 0
     
     var body: some View {
         ZStack {
@@ -675,26 +687,7 @@ struct HomeDownloadButtonView: View {
                         
                         withAnimation {
                             downloader.start(url: downloadURL) { localURL in
-                                
-                                // مەرجی سەرەکی لێرە جێبەجێ کراوە
-                                if installationMethod == 0 {
-                                    // ئەگەر On Server بوو: دەبێت فایلی دابەزێنراو ڕاستەوخۆ بنێرین بۆ واژووکردن
-                                    
-                                    let id = "DirectInstall_\(UUID().uuidString)"
-                                    let downloadSession = downloadManager.startArchive(from: localURL, id: id)
-                                    
-                                    do {
-                                        try downloadManager.handlePachageFile(url: localURL, dl: downloadSession)
-                                        // نامەیەک دەنێرین بۆ سیستەمەکە کە پەنجەرەی ئینستاڵەکە ڕاستەوخۆ بکاتەوە
-                                        NotificationCenter.default.post(name: Notification.Name("Feather.installApp"), object: nil)
-                                    } catch {
-                                        print("Error preparing direct install: \(error)")
-                                    }
-                                } else {
-                                    // ئەگەر On Device بوو: دەچێتە ناو فۆڵدەری Library
-                                    _ = downloadManager.startDownload(from: localURL)
-                                }
-                                
+                                _ = downloadManager.startDownload(from: localURL)
                                 DispatchQueue.main.async {
                                     onDownloadComplete()
                                 }
