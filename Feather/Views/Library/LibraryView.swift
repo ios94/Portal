@@ -21,6 +21,9 @@ struct LibraryView: View {
     @State private var _isDownloadingPresenting = false
     @State private var _alertDownloadString: String = "" // for _isDownloadingPresenting
     
+    // گۆڕاوێکی نوێ بۆ نیشاندانی دیزاینە نوێیەکە
+    @State private var _showModernImportSheet = false
+    
     // MARK: Selection State
     @State private var _selectedAppUUIDs: Set<String> = []
     @State private var _editMode: EditMode = .inactive
@@ -146,9 +149,10 @@ struct LibraryView: View {
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 30)
                         
-                        Menu {
-                            _importActions()
-                        } label: {
+                        // گۆڕینی Menu کۆنەکە بۆ دوگمەیەکی مۆدێرن کە پەنجەرە نوێیەکە دەکاتەوە
+                        Button(action: {
+                            _showModernImportSheet = true
+                        }) {
                             HStack {
                                 Image(systemName: "plus.circle.fill")
                                 Text(.localized("Import App"))
@@ -181,12 +185,14 @@ struct LibraryView: View {
                         _bulkDeleteSelectedApps()
                     }
                 } else {
-                    NBToolbarMenu(
-                        systemImage: "plus.circle.fill",
-                        style: .icon,
-                        placement: .topBarTrailing
-                    ) {
-                        _importActions()
+                    // گۆڕینی Menuیەکەی سەرەوەش بۆ هەمان پەنجەرەی مۆدێرن
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button(action: {
+                            _showModernImportSheet = true
+                        }) {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.title3)
+                        }
                     }
                 }
             }
@@ -202,6 +208,102 @@ struct LibraryView: View {
             .fullScreenCover(item: $_selectedSigningAppPresenting) { app in
                 SigningView(app: app.base)
                     .compatNavigationTransition(id: app.base.uuid ?? "", ns: _namespace)
+            }
+            // MARK: - Modern Import Menu Sheet
+            .sheet(isPresented: $_showModernImportSheet) {
+                VStack(spacing: 20) {
+                    Capsule()
+                        .fill(Color.gray.opacity(0.3))
+                        .frame(width: 40, height: 5)
+                        .padding(.top, 10)
+                    
+                    Text(.localized("Import App"))
+                        .font(.system(size: 22, weight: .bold, design: .rounded))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 20)
+                    
+                    VStack(spacing: 16) {
+                        // کارتی یەکەم بۆ Import from URL
+                        Button(action: {
+                            _showModernImportSheet = false
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                                _isDownloadingPresenting = true
+                            }
+                        }) {
+                            HStack(spacing: 16) {
+                                ZStack {
+                                    Circle()
+                                        .fill(Color.blue.opacity(0.15))
+                                        .frame(width: 52, height: 52)
+                                    Image(systemName: "globe")
+                                        .font(.system(size: 22, weight: .semibold))
+                                        .foregroundColor(.blue)
+                                }
+                                
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(.localized("Import from URL"))
+                                        .font(.system(size: 17, weight: .bold, design: .rounded))
+                                        .foregroundColor(.primary)
+                                    Text(.localized("Download and install directly from a web link."))
+                                        .font(.system(size: 13, weight: .regular, design: .rounded))
+                                        .foregroundColor(.secondary)
+                                }
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .foregroundColor(.gray.opacity(0.4))
+                                    .font(.system(size: 14, weight: .bold))
+                            }
+                            .padding(16)
+                            .background(Color(UIColor.secondarySystemGroupedBackground))
+                            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                            .shadow(color: Color.black.opacity(0.04), radius: 8, x: 0, y: 3)
+                        }
+                        .buttonStyle(.plain)
+                        
+                        // کارتی دووەم بۆ Import from Files
+                        Button(action: {
+                            _showModernImportSheet = false
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                                _isImportingPresenting = true
+                            }
+                        }) {
+                            HStack(spacing: 16) {
+                                ZStack {
+                                    Circle()
+                                        .fill(Color.purple.opacity(0.15))
+                                        .frame(width: 52, height: 52)
+                                    Image(systemName: "folder.fill")
+                                        .font(.system(size: 22, weight: .semibold))
+                                        .foregroundColor(.purple)
+                                }
+                                
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(.localized("Import from Files"))
+                                        .font(.system(size: 17, weight: .bold, design: .rounded))
+                                        .foregroundColor(.primary)
+                                    Text(.localized("Browse your device to install local IPA files."))
+                                        .font(.system(size: 13, weight: .regular, design: .rounded))
+                                        .foregroundColor(.secondary)
+                                }
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .foregroundColor(.gray.opacity(0.4))
+                                    .font(.system(size: 14, weight: .bold))
+                            }
+                            .padding(16)
+                            .background(Color(UIColor.secondarySystemGroupedBackground))
+                            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                            .shadow(color: Color.black.opacity(0.04), radius: 8, x: 0, y: 3)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.horizontal, 20)
+                    
+                    Spacer()
+                }
+                .presentationDetents([.height(290)])
+                .presentationDragIndicator(.hidden)
+                .background(Color(UIColor.systemGroupedBackground).ignoresSafeArea())
             }
             .sheet(isPresented: $_isImportingPresenting) {
                 FileImporterRepresentableView(
@@ -278,19 +380,6 @@ extension LibraryView {
             .background(Color(UIColor.secondarySystemGroupedBackground))
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             .shadow(color: Color.black.opacity(0.04), radius: 8, x: 0, y: 3)
-        }
-    }
-}
-
-// MARK: - Extension: Actions
-extension LibraryView {
-    @ViewBuilder
-    private func _importActions() -> some View {
-        Button(.localized("Import from Files"), systemImage: "folder") {
-            _isImportingPresenting = true
-        }
-        Button(.localized("Import from URL"), systemImage: "globe") {
-            _isDownloadingPresenting = true
         }
     }
 }
