@@ -1,5 +1,5 @@
 //
-//  HomeView.swift (MODERN UI)
+//  HomeView.swift (CLEAN MODERN UI)
 //
 
 import SwiftUI
@@ -42,59 +42,80 @@ struct HomeView: View {
     @StateObject var downloadManager = DownloadManager.shared
     @State private var apps: [HomeApp] = []
     
+    @State private var showNotification = false
+    @State private var downloadedApp: HomeApp? = nil
+    
+    var featuredApps: [HomeApp] {
+        Array(apps.filter { $0.status == "new" || $0.status == "top" || $0.status == "update" }.prefix(3))
+    }
+    
     var groupedApps: [(String, [HomeApp])] {
         let dict = Dictionary(grouping: apps, by: { $0.category ?? "Apps" })
         return dict.sorted { $0.key < $1.key }
     }
     
     var body: some View {
-        ZStack {
+        ZStack(alignment: .top) {
             
-            // 🌈 Background Gradient
-            LinearGradient(
-                colors: [
-                    Color.blue.opacity(0.2),
-                    Color.purple.opacity(0.15),
-                    Color(UIColor.systemBackground)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
+            // CLEAN BACKGROUND
+            Color(UIColor.systemGroupedBackground)
+                .ignoresSafeArea()
             
             NBNavigationView("Home") {
                 ScrollView {
-                    VStack(spacing: 25) {
+                    VStack(spacing: 24) {
                         
-                        // 🔥 Featured
-                        TabView {
-                            ForEach(apps.prefix(5)) { app in
-                                FeaturedAppView(app: app, downloadManager: downloadManager)
-                            }
-                        }
-                        .frame(height: 240)
-                        .tabViewStyle(.page)
-                        
-                        // 📦 Categories
-                        ForEach(groupedApps, id: \.0) { category, categoryApps in
-                            VStack(alignment: .leading, spacing: 15) {
-                                
-                                Text(category)
-                                    .font(.title2.bold())
-                                    .padding(.horizontal, 20)
-                                
-                                ScrollView(.horizontal, showsIndicators: false) {
-                                    HStack(spacing: 16) {
-                                        ForEach(categoryApps) { app in
-                                            HomeAppCardView(app: app, downloadManager: downloadManager)
+                        // FEATURED
+                        if !featuredApps.isEmpty {
+                            TabView {
+                                ForEach(featuredApps) { app in
+                                    NavigationLink(destination: HomeAppDetailView(app: app, downloadManager: downloadManager) {
+                                        showDownloadNotification(for: app)
+                                    }) {
+                                        FeaturedAppView(app: app, downloadManager: downloadManager) {
+                                            showDownloadNotification(for: app)
                                         }
                                     }
-                                    .padding(.horizontal, 20)
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                            .frame(height: 220)
+                            .tabViewStyle(.page)
+                        }
+                        
+                        // CATEGORIES
+                        VStack(alignment: .leading, spacing: 24) {
+                            ForEach(groupedApps, id: \.0) { category, categoryApps in
+                                VStack(alignment: .leading, spacing: 12) {
+                                    
+                                    Text(category)
+                                        .font(.title3.weight(.semibold))
+                                        .padding(.horizontal, 20)
+                                    
+                                    ScrollView(.horizontal, showsIndicators: false) {
+                                        LazyHStack(spacing: 12) {
+                                            ForEach(categoryApps) { app in
+                                                NavigationLink(destination: HomeAppDetailView(app: app, downloadManager: downloadManager) {
+                                                    showDownloadNotification(for: app)
+                                                }) {
+                                                    HomeAppCardView(app: app, downloadManager: downloadManager) {
+                                                        showDownloadNotification(for: app)
+                                                    }
+                                                }
+                                                .buttonStyle(.plain)
+                                            }
+                                        }
+                                        .padding(.horizontal, 20)
+                                    }
                                 }
                             }
                         }
+                        
+                        SocialMediaFooter()
+                            .padding(.top, 10)
+                            .padding(.bottom, 30)
                     }
-                    .padding(.top)
+                    .padding(.top, 10)
                 }
                 .refreshable {
                     await loadApps()
@@ -103,7 +124,55 @@ struct HomeView: View {
             .onAppear {
                 Task { await loadApps() }
             }
+            
+            if showNotification, let app = downloadedApp {
+                notificationBanner(for: app)
+                    .padding(.top, 8)
+                    .zIndex(100)
+            }
         }
+    }
+    
+    private func showDownloadNotification(for app: HomeApp) {
+        self.downloadedApp = app
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+            self.showNotification = true
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+            withAnimation(.easeOut) {
+                self.showNotification = false
+            }
+        }
+    }
+    
+    private func notificationBanner(for app: HomeApp) -> some View {
+        HStack(spacing: 12) {
+            AsyncImage(url: app.fullImageURL) { image in
+                image.resizable()
+            } placeholder: {
+                Color.gray.opacity(0.2)
+            }
+            .frame(width: 40, height: 40)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Downloaded")
+                    .font(.subheadline.weight(.semibold))
+                Text(app.name)
+                    .font(.footnote)
+                    .foregroundColor(.secondary)
+            }
+            
+            Spacer()
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(Color(UIColor.systemBackground))
+                .shadow(color: .black.opacity(0.08), radius: 10, y: 4)
+        )
+        .padding(.horizontal)
+        .transition(.move(edge: .top).combined(with: .opacity))
     }
     
     private func loadApps() async {
@@ -115,90 +184,93 @@ struct HomeView: View {
                 self.apps = decoded
             }
         } catch {
-            print("Error: \(error)")
+            print(error)
         }
     }
 }
 
-// MARK: - FEATURED CARD
+// MARK: - FEATURED
 
 struct FeaturedAppView: View {
     let app: HomeApp
     @ObservedObject var downloadManager: DownloadManager
+    var onDownloadComplete: () -> Void
     
     var body: some View {
         ZStack(alignment: .bottomLeading) {
-            
             AsyncImage(url: app.fullBannerURL) { img in
                 img.resizable().scaledToFill()
             } placeholder: {
-                Color.gray.opacity(0.2)
+                Color.gray.opacity(0.1)
             }
-            .frame(height: 220)
-            .clipShape(RoundedRectangle(cornerRadius: 28))
+            .frame(height: 200)
+            .clipShape(RoundedRectangle(cornerRadius: 18))
             
-            LinearGradient(colors: [.clear, .black.opacity(0.8)],
+            LinearGradient(colors: [.clear, .black.opacity(0.6)],
                            startPoint: .top,
                            endPoint: .bottom)
-                .clipShape(RoundedRectangle(cornerRadius: 28))
+                .clipShape(RoundedRectangle(cornerRadius: 18))
             
             HStack {
-                VStack(alignment: .leading) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(app.name)
-                        .font(.title2.bold())
+                        .font(.headline.bold())
                         .foregroundColor(.white)
                     
-                    Text(app.category ?? "App")
-                        .foregroundColor(.gray)
+                    Text(app.category ?? "")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.8))
                 }
                 
                 Spacer()
                 
-                HomeDownloadButtonView(app: app, downloadManager: downloadManager)
+                HomeDownloadButtonView(app: app, downloadManager: downloadManager, onDownloadComplete: onDownloadComplete)
+                    .colorScheme(.dark)
             }
             .padding()
         }
         .padding(.horizontal)
+        .overlay(
+            RoundedRectangle(cornerRadius: 18)
+                .stroke(Color.black.opacity(0.05))
+        )
+        .shadow(color: .black.opacity(0.08), radius: 8, y: 4)
     }
 }
 
-// MARK: - APP CARD
+// MARK: - CARD
 
 struct HomeAppCardView: View {
     let app: HomeApp
     @ObservedObject var downloadManager: DownloadManager
-    @State private var press = false
+    var onDownloadComplete: () -> Void
     
     var body: some View {
         VStack(spacing: 8) {
-            
             AsyncImage(url: app.fullImageURL) { img in
-                img.resizable().scaledToFill()
+                img.resizable()
             } placeholder: {
-                Color.gray.opacity(0.2)
+                Color.gray.opacity(0.1)
             }
             .frame(width: 70, height: 70)
-            .clipShape(RoundedRectangle(cornerRadius: 18))
+            .clipShape(RoundedRectangle(cornerRadius: 16))
             
             Text(app.name)
-                .font(.system(size: 14, weight: .bold))
+                .font(.system(size: 13, weight: .semibold))
                 .lineLimit(1)
             
-            HomeDownloadButtonView(app: app, downloadManager: downloadManager)
+            HomeDownloadButtonView(app: app, downloadManager: downloadManager, onDownloadComplete: onDownloadComplete)
         }
-        .padding()
-        .frame(width: 130)
+        .padding(12)
+        .frame(width: 120, height: 170)
         .background(
-            RoundedRectangle(cornerRadius: 26)
-                .fill(.ultraThinMaterial)
-                .shadow(color: .black.opacity(0.1), radius: 10)
+            RoundedRectangle(cornerRadius: 18)
+                .fill(Color(UIColor.secondarySystemGroupedBackground))
         )
-        .scaleEffect(press ? 0.95 : 1)
-        .onTapGesture {
-            withAnimation(.spring()) {
-                press.toggle()
-            }
-        }
+        .overlay(
+            RoundedRectangle(cornerRadius: 18)
+                .stroke(Color.black.opacity(0.04))
+        )
     }
 }
 
@@ -207,25 +279,36 @@ struct HomeAppCardView: View {
 struct HomeDownloadButtonView: View {
     let app: HomeApp
     @ObservedObject var downloadManager: DownloadManager
+    var onDownloadComplete: () -> Void
+    
+    @StateObject private var downloader = HomeAppDownloader()
     
     var body: some View {
-        Button("Get") {
-            if let url = URL(string: app.url) {
-                downloadManager.startDownload(from: url)
+        ZStack {
+            if downloader.isDownloading {
+                ProgressView()
+                    .scaleEffect(0.8)
+            } else if downloader.isFinished {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(.blue)
+            } else {
+                Button("GET") {
+                    if let url = URL(string: app.url) {
+                        downloader.start(url: url) { localURL in
+                            _ = downloadManager.startDownload(from: localURL)
+                            onDownloadComplete()
+                        }
+                    }
+                }
+                .font(.system(size: 12, weight: .bold))
+                .padding(.horizontal, 14)
+                .padding(.vertical, 5)
+                .background(Color(UIColor.systemGray5))
+                .foregroundColor(.blue)
+                .clipShape(Capsule())
             }
         }
-        .font(.system(size: 13, weight: .bold))
-        .padding(.vertical, 6)
-        .frame(maxWidth: .infinity)
-        .background(
-            LinearGradient(
-                colors: [Color.blue, Color.purple],
-                startPoint: .leading,
-                endPoint: .trailing
-            )
-        )
-        .foregroundColor(.white)
-        .clipShape(Capsule())
-        .shadow(color: .blue.opacity(0.4), radius: 6)
+        .frame(height: 28)
     }
 }
