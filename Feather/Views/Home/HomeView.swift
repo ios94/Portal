@@ -44,9 +44,15 @@ struct HomeView: View {
     @State private var showNotification = false
     @State private var downloadedApp: HomeApp? = nil
     
-    var featuredApps: [HomeApp] {
-        Array(apps.filter { $0.status == "new" || $0.status == "top" || $0.status == "update" }.prefix(3))
-    }
+    // --- بەشی وێنە لاکێشەییەکان (دەتوانیت لێرە بیانگۆڕیت) ---
+    @State private var currentBanner = 0
+    let myCustomBanners = [
+        "https://ashtemobile.tututweak.com/banner1.png", // لینکی وێنەی یەکەم لێرە دابنێ
+        "https://ashtemobile.tututweak.com/banner2.png"  // لینکی وێنەی دووەم لێرە دابنێ
+    ]
+    // کاتی ئۆتۆماتیکی گۆڕینی وێنەکان (هەر 4 چرکە جارێک)
+    let timer = Timer.publish(every: 4, on: .main, in: .common).autoconnect()
+    // -------------------------------------------------------
     
     var groupedApps: [(String, [HomeApp])] {
         let dict = Dictionary(grouping: apps, by: { $0.category ?? "Apps" })
@@ -55,32 +61,42 @@ struct HomeView: View {
     
     var body: some View {
         ZStack(alignment: .top) {
-            // بەکارهێنانی باکگراوەندی سیستەم بۆ ئەوەی خۆی لەگەڵ لایت/دارک مۆد بگونجێنێت
             Color(UIColor.systemBackground).ignoresSafeArea()
             
             NBNavigationView("Discover") {
                 ScrollView {
                     VStack(spacing: 35) {
                         
-                        // Featured Section (Like App Store Today)
-                        if !featuredApps.isEmpty {
-                            TabView {
-                                ForEach(featuredApps) { app in
-                                    NavigationLink(destination: HomeAppDetailView(app: app, downloadManager: downloadManager) {
-                                        showDownloadNotification(for: app)
-                                    }) {
-                                        FeaturedAppView(app: app, downloadManager: downloadManager) {
-                                            showDownloadNotification(for: app)
-                                        }
+                        // 1. بەشی وێنە لاکێشەییەکان (Custom Banners)
+                        if !myCustomBanners.isEmpty {
+                            TabView(selection: $currentBanner) {
+                                ForEach(0..<myCustomBanners.count, id: \.self) { index in
+                                    AsyncImage(url: URL(string: myCustomBanners[index])) { image in
+                                        image.resizable()
+                                             .aspectRatio(contentMode: .fill)
+                                    } placeholder: {
+                                        Color(UIColor.secondarySystemBackground)
+                                            .overlay(Image(systemName: "photo").foregroundColor(.gray.opacity(0.5)))
                                     }
-                                    .buttonStyle(.plain)
+                                    .tag(index)
                                 }
                             }
-                            .frame(height: 290)
+                            // دانانی قەبارەی وێنەکان بۆ (3464x1948) بە ڕێژەیی
+                            .aspectRatio(3464/1948, contentMode: .fit)
+                            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                            .padding(.horizontal, 20)
+                            .shadow(color: Color.black.opacity(0.12), radius: 10, x: 0, y: 5)
                             .tabViewStyle(PageTabViewStyle(indexDisplayMode: .always))
+                            // جوڵاندنی ئۆتۆماتیکی
+                            .onReceive(timer) { _ in
+                                guard !myCustomBanners.isEmpty else { return }
+                                withAnimation(.easeInOut(duration: 0.5)) {
+                                    currentBanner = (currentBanner + 1) % myCustomBanners.count
+                                }
+                            }
                         }
                         
-                        // Categories Section
+                        // 2. بەشی یاری و بەرنامەکان (Categories Section)
                         VStack(alignment: .leading, spacing: 30) {
                             ForEach(groupedApps, id: \.0) { category, categoryApps in
                                 VStack(alignment: .leading, spacing: 16) {
@@ -116,6 +132,7 @@ struct HomeView: View {
                             }
                         }
                         
+                        // 3. بەشی سۆشیاڵ میدیاکانت (Social Media Footer)
                         SocialMediaFooter()
                             .padding(.top, 10)
                             .padding(.bottom, 40)
@@ -436,61 +453,6 @@ struct AppInfoRow: View {
                     .padding(.leading, 16)
             }
         }
-    }
-}
-
-struct FeaturedAppView: View {
-    let app: HomeApp
-    @ObservedObject var downloadManager: DownloadManager
-    var onDownloadComplete: () -> Void 
-    
-    var body: some View {
-        ZStack(alignment: .bottomLeading) {
-            AsyncImage(url: app.fullBannerURL) { image in
-                image.resizable().aspectRatio(contentMode: .fill)
-            } placeholder: {
-                Color(UIColor.secondarySystemBackground)
-            }
-            .frame(height: 270)
-            
-            // Gradient Overlay for text readability (always dark for white text)
-            LinearGradient(colors: [.clear, .black.opacity(0.4), .black.opacity(0.85)], startPoint: .top, endPoint: .bottom)
-            
-            HStack(alignment: .bottom) {
-                VStack(alignment: .leading, spacing: 6) {
-                    if let status = app.status {
-                        Text(status.uppercased())
-                            .font(.system(size: 11, weight: .bold, design: .rounded))
-                            .tracking(1)
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 4)
-                            .background(Color.blue)
-                            .clipShape(Capsule())
-                    }
-                    
-                    Text(app.name)
-                        .font(.system(size: 26, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
-                        .lineLimit(1)
-                    
-                    Text(app.category ?? "Featured Collection")
-                        .font(.system(size: 14, weight: .medium, design: .rounded))
-                        .foregroundColor(.white.opacity(0.8))
-                }
-                Spacer()
-                
-                HomeDownloadButtonView(app: app, downloadManager: downloadManager, onDownloadComplete: onDownloadComplete)
-                    .frame(width: 80)
-                    // ئەنقەست لێرە دارک مۆد دادەنێین تەنها بۆ دوگمەکە، چونکە لەسەر باکگراوەندە ڕەشەکە دەبێت
-                    .colorScheme(.dark)
-            }
-            .padding(20)
-        }
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-        .padding(.horizontal, 20)
-        .padding(.bottom, 20)
-        .shadow(color: Color.black.opacity(0.12), radius: 12, x: 0, y: 6)
     }
 }
 
