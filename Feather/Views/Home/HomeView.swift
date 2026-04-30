@@ -29,7 +29,7 @@ struct HomeApp: Codable, Identifiable {
     }
 }
 
-// MARK: - Main Home View (Dynamic Mesh Style)
+// MARK: - Main Home View (Neumorphic Soft UI)
 struct HomeView: View {
     @StateObject var downloadManager = DownloadManager.shared
     @State private var apps: [HomeApp] = []
@@ -47,59 +47,55 @@ struct HomeView: View {
     
     var body: some View {
         ZStack {
-            // MARK: - Dynamic Mesh Background
-            MeshGradientView().ignoresSafeArea()
+            // Background Color (Neumorphic Gray)
+            Color(hex: "F0F2F5").ignoresSafeArea()
             
-            NBNavigationView("Ashte") {
+            NBNavigationView("Ashte Store") {
                 ScrollView(showsIndicators: false) {
-                    VStack(spacing: 35) {
+                    VStack(spacing: 40) {
                         
-                        // MARK: - Liquid Featured Slider
+                        // MARK: - Modern Hero Slider
                         if !featuredApps.isEmpty {
                             ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 15) {
+                                HStack(spacing: 25) {
                                     ForEach(featuredApps) { app in
                                         NavigationLink(destination: HomeAppDetailView(app: app, downloadManager: downloadManager) {
                                             showDownloadNotification(for: app)
                                         }) {
-                                            LiquidHeroCard(app: app)
+                                            NeumorphicHeroCard(app: app)
                                         }
                                         .buttonStyle(.plain)
                                     }
                                 }
-                                .padding(.horizontal, 20)
+                                .padding(.horizontal, 25)
+                                .padding(.vertical, 10)
                             }
                         }
                         
-                        // MARK: - Glass Sections
-                        VStack(alignment: .leading, spacing: 25) {
+                        // MARK: - App Rows
+                        VStack(alignment: .leading, spacing: 30) {
                             ForEach(groupedApps, id: \.0) { category, categoryApps in
                                 VStack(alignment: .leading, spacing: 15) {
                                     Text(category)
-                                        .font(.system(size: 20, weight: .black, design: .rounded))
-                                        .padding(.horizontal, 25)
-                                        .foregroundColor(.primary.opacity(0.8))
+                                        .font(.system(size: 22, weight: .black, design: .rounded))
+                                        .foregroundColor(Color.gray)
+                                        .padding(.horizontal, 30)
                                     
-                                    ScrollView(.horizontal, showsIndicators: false) {
-                                        LazyHStack(spacing: 18) {
-                                            ForEach(categoryApps) { app in
-                                                NavigationLink(destination: HomeAppDetailView(app: app, downloadManager: downloadManager) {
-                                                    showDownloadNotification(for: app)
-                                                }) {
-                                                    GlassAppCard(app: app, downloadManager: downloadManager) {
-                                                        showDownloadNotification(for: app)
-                                                    }
-                                                }
-                                                .buttonStyle(.plain)
+                                    ForEach(categoryApps) { app in
+                                        NavigationLink(destination: HomeAppDetailView(app: app, downloadManager: downloadManager) {
+                                            showDownloadNotification(for: app)
+                                        }) {
+                                            NeumorphicRow(app: app, downloadManager: downloadManager) {
+                                                showDownloadNotification(for: app)
                                             }
                                         }
-                                        .padding(.horizontal, 25)
+                                        .buttonStyle(.plain)
                                     }
                                 }
                             }
                         }
                         
-                        Spacer().frame(height: 80)
+                        Spacer().frame(height: 100)
                     }
                 }
                 .refreshable { await loadApps() }
@@ -107,8 +103,8 @@ struct HomeView: View {
             .onAppear { Task { await loadApps() } }
             
             if showNotification, let app = downloadedApp {
-                GlassNotification(app: app)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                DownloadSuccessToast(app: app)
+                    .transition(.move(edge: .top).combined(with: .opacity))
                     .zIndex(100)
             }
         }
@@ -117,7 +113,7 @@ struct HomeView: View {
     private func showDownloadNotification(for app: HomeApp) {
         self.downloadedApp = app
         withAnimation(.spring()) { self.showNotification = true }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
             withAnimation { self.showNotification = false }
         }
     }
@@ -132,79 +128,77 @@ struct HomeView: View {
     }
 }
 
-// MARK: - Modern Components
+// MARK: - Neumorphic Components
 
-struct MeshGradientView: View {
-    var body: some View {
-        ZStack {
-            Color.white
-            LinearGradient(colors: [Color.blue.opacity(0.1), Color.purple.opacity(0.1), Color.white], startPoint: .topLeading, endPoint: .bottomTrailing)
-            Circle().fill(Color.blue.opacity(0.05)).frame(width: 400).offset(x: -150, y: -200).blur(radius: 80)
-            Circle().fill(Color.purple.opacity(0.05)).frame(width: 300).offset(x: 150, y: 300).blur(radius: 80)
-        }
-    }
-}
-
-struct LiquidHeroCard: View {
+struct NeumorphicHeroCard: View {
     let app: HomeApp
     var body: some View {
-        ZStack(alignment: .bottomLeading) {
+        VStack(spacing: 15) {
             AsyncImage(url: app.fullImageURL) { image in
                 image.resizable().aspectRatio(contentMode: .fill)
-            } placeholder: { Color.gray.opacity(0.1) }
-            .frame(width: 300, height: 180)
-            .clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
-            
-            VisualEffectBlur(blurStyle: .systemUltraThinMaterialDark)
-                .frame(height: 60)
-                .clipShape(RoundedCorner(radius: 30, corners: [.bottomLeft, .bottomRight]))
+            } placeholder: { Color.white.opacity(0.1) }
+            .frame(width: 120, height: 120)
+            .clipShape(RoundedRectangle(cornerRadius: 30))
+            .shadow(color: Color.black.opacity(0.1), radius: 10, x: 5, y: 5)
+            .shadow(color: Color.white.opacity(0.8), radius: 10, x: -5, y: -5)
             
             Text(app.name)
-                .font(.system(size: 18, weight: .bold))
-                .foregroundColor(.white)
-                .padding(.leading, 20).padding(.bottom, 18)
+                .font(.system(size: 16, weight: .bold))
+                .foregroundColor(.darkText)
         }
-        .shadow(color: Color.black.opacity(0.1), radius: 15, y: 10)
+        .frame(width: 180, height: 220)
+        .background(Color(hex: "F0F2F5"))
+        .clipShape(RoundedRectangle(cornerRadius: 40))
+        .shadow(color: Color.black.opacity(0.1), radius: 15, x: 10, y: 10)
+        .shadow(color: Color.white.opacity(0.9), radius: 15, x: -10, y: -10)
     }
 }
 
-struct GlassAppCard: View {
+struct NeumorphicRow: View {
     let app: HomeApp
     @ObservedObject var downloadManager: DownloadManager
     var onDownloadComplete: () -> Void
     
     var body: some View {
-        VStack(spacing: 12) {
+        HStack(spacing: 20) {
             AsyncImage(url: app.fullImageURL)
-                .frame(width: 85, height: 85)
-                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-                .shadow(color: Color.black.opacity(0.05), radius: 10, y: 5)
+                .frame(width: 60, height: 60)
+                .clipShape(RoundedRectangle(cornerRadius: 15))
+                .shadow(color: Color.black.opacity(0.05), radius: 5, x: 3, y: 3)
             
-            Text(app.name)
-                .font(.system(size: 14, weight: .semibold))
-                .lineLimit(1)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(app.name).font(.system(size: 17, weight: .bold))
+                Text(app.developer ?? "Ashte Store").font(.system(size: 13)).foregroundColor(.secondary)
+            }
+            
+            Spacer()
             
             HomeDownloadButtonView(app: app, downloadManager: downloadManager, onDownloadComplete: onDownloadComplete)
+                .frame(width: 70)
         }
         .padding(15)
-        .background(Color.white.opacity(0.4))
-        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 28).stroke(Color.white.opacity(0.5), lineWidth: 1))
-        .frame(width: 120)
+        .background(Color(hex: "F0F2F5"))
+        .clipShape(RoundedRectangle(cornerRadius: 25))
+        .shadow(color: Color.black.opacity(0.08), radius: 10, x: 5, y: 5)
+        .shadow(color: Color.white.opacity(0.8), radius: 10, x: -5, y: -5)
+        .padding(.horizontal, 25)
     }
 }
 
-struct GlassNotification: View {
+struct DownloadSuccessToast: View {
     let app: HomeApp
     var body: some View {
         VStack {
-            Spacer()
             HStack {
-                Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
-                Text("\(app.name) Downloaded").font(.system(size: 14, weight: .bold))
+                Image(systemName: "checkmark.seal.fill").foregroundColor(.blue)
+                Text("\(app.name) Added").font(.headline)
             }
-            .padding().background(.ultraThinMaterial).clipShape(Capsule()).shadow(radius: 10)
-            .padding(.bottom, 40)
+            .padding()
+            .background(Color.white)
+            .clipShape(Capsule())
+            .shadow(radius: 10)
+            .padding(.top, 50)
+            Spacer()
         }
     }
 }
@@ -217,66 +211,82 @@ struct HomeAppDetailView: View {
     @Environment(\.presentationMode) var presentationMode
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 30) {
-                ZStack(alignment: .topLeading) {
-                    AsyncImage(url: app.fullImageURL)
-                        .frame(maxWidth: .infinity).frame(height: 300).clipped().blur(radius: 40).opacity(0.3)
+        ZStack {
+            Color(hex: "F0F2F5").ignoresSafeArea()
+            
+            ScrollView {
+                VStack(spacing: 30) {
+                    HStack {
+                        Button(action: { presentationMode.wrappedValue.dismiss() }) {
+                            Image(systemName: "chevron.left").font(.title3).foregroundColor(.darkText)
+                                .padding().background(Color(hex: "F0F2F5")).clipShape(Circle())
+                                .shadow(color: Color.black.opacity(0.1), radius: 5, x: 3, y: 3)
+                        }
+                        Spacer()
+                    }.padding(.horizontal, 25)
+                    
+                    VStack(spacing: 20) {
+                        AsyncImage(url: app.fullImageURL)
+                            .frame(width: 140, height: 140)
+                            .clipShape(RoundedRectangle(cornerRadius: 35))
+                            .shadow(color: Color.black.opacity(0.1), radius: 15, x: 10, y: 10)
+                            .shadow(color: Color.white.opacity(0.9), radius: 15, x: -10, y: -10)
+                        
+                        Text(app.name).font(.system(size: 28, weight: .black))
+                        Text(app.developer ?? "Official App").foregroundColor(.secondary)
+                    }
                     
                     VStack(alignment: .leading, spacing: 20) {
-                        Button(action: { presentationMode.wrappedValue.dismiss() }) {
-                            Image(systemName: "chevron.left").font(.title3).padding().background(.white).clipShape(Circle())
-                        }
+                        InfoLabel(t: "Version", v: app.version ?? "1.0")
+                        InfoLabel(t: "Size", v: app.size ?? "N/A")
                         
-                        HStack(spacing: 20) {
-                            AsyncImage(url: app.fullImageURL).frame(width: 110, height: 110).clipShape(RoundedRectangle(cornerRadius: 25))
-                            VStack(alignment: .leading, spacing: 5) {
-                                Text(app.name).font(.system(size: 26, weight: .heavy))
-                                Text(app.developer ?? "Ashte Store").foregroundColor(.secondary)
-                            }
-                        }
-                    }.padding(30)
+                        Text("Features").font(.headline).padding(.top)
+                        Text(app.hack?.joined(separator: "\n") ?? "Standard version with full support.")
+                            .foregroundColor(.secondary).lineSpacing(8)
+                        
+                        HomeDownloadButtonView(app: app, downloadManager: downloadManager, onDownloadComplete: onDownloadComplete)
+                            .frame(height: 55).padding(.top)
+                    }
+                    .padding(30)
+                    .background(Color(hex: "F0F2F5"))
+                    .clipShape(RoundedRectangle(cornerRadius: 40))
+                    .shadow(color: Color.black.opacity(0.05), radius: 20, x: 10, y: 10)
+                    .padding(.horizontal, 25)
                 }
-                
-                VStack(alignment: .leading, spacing: 20) {
-                    Text("About").font(.title3.bold())
-                    Text("Version: \(app.version ?? "1.0")").padding(.horizontal).padding(.vertical, 8).background(Color.blue.opacity(0.05)).clipShape(Capsule())
-                    
-                    Text(app.hack?.joined(separator: "\n") ?? "Enjoy the premium features.")
-                        .foregroundColor(.secondary).lineSpacing(6)
-                    
-                    HomeDownloadButtonView(app: app, downloadManager: downloadManager, onDownloadComplete: onDownloadComplete)
-                        .frame(height: 50).padding(.top)
-                }
-                .padding(30)
-                .background(Color.white).cornerRadius(40, corners: [.topLeft, .topRight])
-                .offset(y: -40)
+                .padding(.top, 20)
             }
         }
-        .ignoresSafeArea().navigationBarHidden(true)
+        .navigationBarHidden(true)
     }
 }
 
-// MARK: - Logic Helpers
-struct VisualEffectBlur: UIViewRepresentable {
-    var blurStyle: UIBlurEffect.Style
-    func makeUIView(context: Context) -> UIVisualEffectView { UIVisualEffectView(effect: UIBlurEffect(style: blurStyle)) }
-    func updateUIView(_ uiView: UIVisualEffectView, context: Context) { uiView.effect = UIBlurEffect(style: blurStyle) }
-}
-
-extension View {
-    func cornerRadius(_ radius: CGFloat, corners: UIRectCorner) -> some View {
-        clipShape(RoundedCorner(radius: radius, corners: corners))
+struct InfoLabel: View {
+    let t: String; let v: String
+    var body: some View {
+        HStack {
+            Text(t).foregroundColor(.secondary)
+            Spacer()
+            Text(v).bold()
+        }
+        .padding().background(Color.white.opacity(0.5)).clipShape(RoundedRectangle(cornerRadius: 15))
     }
 }
 
-struct RoundedCorner: Shape {
-    var radius: CGFloat = .infinity
-    var corners: UIRectCorner = .allCorners
-    func path(in rect: CGRect) -> Path {
-        let path = UIBezierPath(roundedRect: rect, byRoundingCorners: corners, cornerRadii: CGSize(width: radius, height: radius))
-        return Path(path.cgPath)
+// MARK: - Helpers
+extension Color {
+    init(hex: String) {
+        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+        var int: UInt64 = 0
+        Scanner(string: hex).scanHexInt64(&int)
+        let a, r, g, b: UInt64
+        switch hex.count {
+        case 3: (a, r, g, b) = (255, (int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
+        case 6: (a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
+        default: (a, r, g, b) = (1, 1, 1, 0)
+        }
+        self.init(.sRGB, red: Double(r) / 255, green: Double(g) / 255, blue: Double(b) / 255, opacity: Double(a) / 255)
     }
+    static let darkText = Color(white: 0.2)
 }
 
 struct HomeDownloadButtonView: View {
@@ -292,17 +302,22 @@ struct HomeDownloadButtonView: View {
                 }
             }
         }) {
-            if downloader.isDownloading {
-                ProgressView(value: downloader.progress).tint(.blue).frame(height: 4)
-            } else {
-                Text(downloader.isFinished ? "OPEN" : "GET")
-                    .font(.system(size: 14, weight: .black))
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(LinearGradient(colors: [.blue, .purple], startPoint: .leading, endPoint: .trailing))
-                    .clipShape(Capsule())
+            ZStack {
+                if downloader.isDownloading {
+                    Circle().trim(from: 0, to: downloader.progress).stroke(Color.blue, lineWidth: 3).rotationEffect(.degrees(-90))
+                } else {
+                    Text(downloader.isFinished ? "OPEN" : "GET")
+                        .font(.system(size: 14, weight: .black))
+                        .foregroundColor(.blue)
+                }
             }
-        }.frame(height: 32)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color(hex: "F0F2F5"))
+            .clipShape(Capsule())
+            .shadow(color: Color.black.opacity(0.1), radius: 5, x: 3, y: 3)
+            .shadow(color: Color.white.opacity(0.9), radius: 5, x: -3, y: -3)
+        }
+        .frame(height: 35)
     }
 }
 
