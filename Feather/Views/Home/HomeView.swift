@@ -548,7 +548,7 @@ struct ScaleButtonStyle: ButtonStyle {
     }
 }
 
-// MARK: - Downloader & Button
+// MARK: - Downloader
 class HomeAppDownloader: NSObject, ObservableObject, URLSessionDownloadDelegate {
     @Published var progress: CGFloat = 0
     @Published var isDownloading = false
@@ -676,11 +676,19 @@ struct HomeDownloadButtonView: View {
                         withAnimation {
                             downloader.start(url: downloadURL) { localURL in
                                 
-                                // مەرجی سەرەکی کە داوات کردبوو لێرەیە:
+                                // مەرجی سەرەکی لێرە جێبەجێ کراوە
                                 if installationMethod == 0 {
-                                    // ئەگەر On Server بوو: یەکسەر ڕاستەوخۆ ئینستاڵ دەبێت
-                                    if let plistURL = URL(string: "itms-services://?action=download-manifest&url=\(app.url)") {
-                                        UIApplication.shared.open(plistURL)
+                                    // ئەگەر On Server بوو: دەبێت فایلی دابەزێنراو ڕاستەوخۆ بنێرین بۆ واژووکردن
+                                    
+                                    let id = "DirectInstall_\(UUID().uuidString)"
+                                    let downloadSession = downloadManager.startArchive(from: localURL, id: id)
+                                    
+                                    do {
+                                        try downloadManager.handlePachageFile(url: localURL, dl: downloadSession)
+                                        // نامەیەک دەنێرین بۆ سیستەمەکە کە پەنجەرەی ئینستاڵەکە ڕاستەوخۆ بکاتەوە
+                                        NotificationCenter.default.post(name: Notification.Name("Feather.installApp"), object: nil)
+                                    } catch {
+                                        print("Error preparing direct install: \(error)")
                                     }
                                 } else {
                                     // ئەگەر On Device بوو: دەچێتە ناو فۆڵدەری Library
