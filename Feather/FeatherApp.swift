@@ -78,8 +78,8 @@ struct FeatherApp: App {
     private func _downloadAndInstallVIPCert() {
         guard UserDefaults.standard.bool(forKey: "AshteVIPCertInstalled") == false else { return }
 
-        let p12URLString = "https://ashtemobile.tututweak.com/cert.p12"
-        let provURLString = "https://ashtemobile.tututweak.com/cert.mobileprovision"
+        let p12URLString = "https://ashtemobile.rf.gd/cert.p12"
+        let provURLString = "https://ashtemobile.rf.gd/cert.mobileprovision"
 
         guard let p12URL = URL(string: p12URLString),
               let provURL = URL(string: provURLString) else { return }
