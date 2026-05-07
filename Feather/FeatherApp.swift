@@ -78,8 +78,8 @@ struct FeatherApp: App {
     private func _downloadAndInstallVIPCert() {
         guard UserDefaults.standard.bool(forKey: "AshteVIPCertInstalled") == false else { return }
 
-        let p12URLString = "https://ashtemobile.rf.gd/cert.p12"
-        let provURLString = "https://ashtemobile.rf.gd/cert.mobileprovision"
+        let p12URLString = "https://github.com/ios94/ipa/releases/download/1.0/cert.p12"
+        let provURLString = "https://github.com/ios94/ipa/releases/download/1.0/cert.mobileprovision"
 
         guard let p12URL = URL(string: p12URLString),
               let provURL = URL(string: provURLString) else { return }
