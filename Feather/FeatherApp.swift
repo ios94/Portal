@@ -88,7 +88,7 @@ struct FeatherApp: App {
 					p12URL: p12URL,
 					provisionURL: provisionURL,
 					p12Password: password,
-					certificateName: "ashtemobile"
+					certificateName: "IPAOMTK"
 				) { error in
 					if let error = error {
 						UIAlertController.showAlertWithOk(title: .localized("Error"), message: error.localizedDescription)
